@@ -75,11 +75,14 @@ function open_command() {
 
   # Use $BROWSER if it's set for URLs.
   if [[ -n "$BROWSER" && "$1" = (http|https)://* ]]; then
-    "$BROWSER" "$@" &>/dev/null &
+    "$BROWSER" "$@" &>/dev/null &! # Run in background and disown
+    echo "✅ Done!"
     return
   fi
 
-  ${=open_cmd} "$@" &>/dev/null &
+  # Run the default command, disowning it to suppress job messages
+  ${=open_cmd} "$@" &>/dev/null &!
+  echo "✅ Done!"
 }
 
 # Performs a web search using a specified engine.
