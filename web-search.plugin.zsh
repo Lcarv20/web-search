@@ -1,121 +1,8 @@
-function omz_urlencode() {
-   emulate -L zsh
-   local -a opts
-   zparseopts -D -E -a opts r m P
-   local in_str="$@"
-   local url_str=""
-   local spaces_as_plus
-   if [[ -z $opts[(r)-P] ]]; then spaces_as_plus=1; fi
-   local str="$in_str"
-
-   # Debug: Print the input string
-   echo "Debug: Input string is $str"
-
-   # URLs must use UTF-8 encoding; convert str to UTF-8 if required
-   local encoding=${langinfo[CODESET]:-UTF-8} # Fallback to UTF-8 if encoding is empty
-
-   # Debug: Print the detected encoding
-   echo "Debug: Detected encoding is $encoding"
-
-   local safe_encodings
-   safe_encodings=(UTF-8 utf8 US-ASCII)
-   if [[ -z ${safe_encodings[(r)$encoding]} ]]; then
-     str=$(echo -E "$str" | iconv -f $encoding -t UTF-8)
-     if [[ $? != 0 ]]; then
-       echo "Error converting string from $encoding to UTF-8" >&2
-       return 1
-     fi
-   fi
-
-   # Use LC_CTYPE=C to process text byte-by-byte
-   local i byte ord LC_ALL=C
-   export LC_ALL
-   local reserved=';/?:@&=+$,'
-   local mark='_.!~*''()-'
-   local dont_escape="[A-Za-z0-9"
-   if [[ -z $opts[(r)-r] ]]; then
-     dont_escape+=$reserved
-   fi
-   if [[ -z $opts[(r)-m] ]]; then
-     dont_escape+=$mark
-   fi
-   dont_escape+="]"
-
-   local url_str=""
-   for (( i = 1; i <= ${#str}; ++i )); do
-     byte="$str[i]"
-     if [[ "$byte" =~ "$dont_escape" ]]; then
-       url_str+="$byte"
-     else
-       if [[ "$byte" == " " && -n $spaces_as_plus ]]; then
-         url_str+="+"
-       elif [[ "$PREFIX" = *com.termux* ]]; then
-         url_str+="$byte"
-       else
-         ord=$(( [##16] #byte ))
-         url_str+="%$ord"
-       fi
-     fi
-   done
-   echo -E "$url_str"
-}
-
- function open_command() {
-   local open_cmd
-
-   # define the open command
-   case "$OSTYPE" in
-     darwin*)  open_cmd='open' ;;
-     cygwin*)  open_cmd='cygstart' ;;
-     linux*)   [[ "$(uname -r)" != *icrosoft* ]] && open_cmd='nohup xdg-open' || {
-                 open_cmd='cmd.exe /c start ""'
-                 [[ -e "$1" ]] && { 1="$(wslpath -w "${1:a}")" || return 1 }
-               } ;;
-     msys*)    open_cmd='start ""' ;;
-     *)        echo "Platform $OSTYPE not supported"
-               return 1
-               ;;
-   esac
-
-   # If a URL is passed, $BROWSER might be set to a local browser within SSH.
-   # See https://github.com/ohmyzsh/ohmyzsh/issues/11098
-   if [[ -n "$BROWSER" && "$1" = (http|https)://* ]]; then
-     "$BROWSER" "$@"
-     return
-   fi
-
-   ${=open_cmd} "$@" &>/dev/null
- }
-
-# web_search from terminal
-
-# omz_urlencode and open_command borrowed from oh-my-zsh
+# Web search from the terminal
+# Functions borrowed and adapted from Oh My Zsh
 # https://github.com/ohmyzsh/ohmyzsh/blob/master/lib/functions.zsh
 
-# URL-encode a string
-#
-# Encodes a string using RFC 2396 URL-encoding (%-escaped).
-# See: https://www.ietf.org/rfc/rfc2396.txt
-#
-# By default, reserved characters and unreserved "mark" characters are
-# not escaped by this function. This allows the common usage of passing
-# an entire URL in, and encoding just special characters in it, with
-# the expectation that reserved and mark characters are used appropriately.
-# The -r and -m options turn on escaping of the reserved and mark characters,
-# respectively, which allows arbitrary strings to be fully escaped for
-# embedding inside URLs, where reserved characters might be misinterpreted.
-#
-# Prints the encoded string on stdout.
-# Returns nonzero if encoding failed.
-#
-# Usage:
-#  omz_urlencode [-r] [-m] [-P] <string> [<string> ...]
-#
-#    -r causes reserved characters (;/?:@&=+$,) to be escaped
-#
-#    -m causes "mark" characters (_.!~*''()-) to be escaped
-#
-#    -P causes spaces to be encoded as '%20' instead of '+'
+# URL-encodes a string using RFC 2396.
 function omz_urlencode() {
   emulate -L zsh
   local -a opts
@@ -123,92 +10,83 @@ function omz_urlencode() {
 
   local in_str="$@"
   local url_str=""
-  local spaces_as_plus
-  if [[ -z $opts[(r)-P] ]]; then spaces_as_plus=1; fi
+  local spaces_as_plus=1
+  [[ -n $opts[(r)-P] ]] && spaces_as_plus=""
   local str="$in_str"
 
-  # URLs must use UTF-8 encoding; convert str to UTF-8 if required
-  local encoding=$langinfo[CODESET]
-  local safe_encodings
+  # Fallback to UTF-8 if CODESET is not defined to prevent iconv errors.
+  local encoding=${langinfo[CODESET]:-UTF-8}
+
+  # Convert string to UTF-8 if necessary.
+  local -a safe_encodings
   safe_encodings=(UTF-8 utf8 US-ASCII)
   if [[ -z ${safe_encodings[(r)$encoding]} ]]; then
-    str=$(echo -E "$str" | iconv -f $encoding -t UTF-8)
+    str=$(echo -E "$str" | iconv -f "$encoding" -t UTF-8 2>/dev/null)
     if [[ $? != 0 ]]; then
-      echo "Error converting string from $encoding to UTF-8" >&2
+      echo "Error: Could not convert string from '$encoding' to 'UTF-8'." >&2
       return 1
     fi
   fi
 
-  # Use LC_CTYPE=C to process text byte-by-byte
-  # Note that this doesn't work in Termux, as it only has UTF-8 locale.
-  # Characters will be processed as UTF-8, which is fine for URLs.
+  # Use LC_ALL=C to process text byte-by-byte.
   local i byte ord LC_ALL=C
   export LC_ALL
   local reserved=';/?:@&=+$,'
   local mark='_.!~*''()-'
   local dont_escape="[A-Za-z0-9"
-  if [[ -z $opts[(r)-r] ]]; then
-    dont_escape+=$reserved
-  fi
-  # $mark must be last because of the "-"
-  if [[ -z $opts[(r)-m] ]]; then
-    dont_escape+=$mark
-  fi
+  [[ -z $opts[(r)-r] ]] && dont_escape+=$reserved
+  [[ -z $opts[(r)-m] ]] && dont_escape+=$mark
   dont_escape+="]"
 
-  # Implemented to use a single printf call and avoid subshells in the loop,
-  # for performance (primarily on Windows).
-  local url_str=""
   for (( i = 1; i <= ${#str}; ++i )); do
     byte="$str[i]"
     if [[ "$byte" =~ "$dont_escape" ]]; then
       url_str+="$byte"
+    elif [[ "$byte" == " " && -n "$spaces_as_plus" ]]; then
+      url_str+="+"
     else
-      if [[ "$byte" == " " && -n $spaces_as_plus ]]; then
-        url_str+="+"
-      elif [[ "$PREFIX" = *com.termux* ]]; then
-        # Termux does not have non-UTF8 locales, so just send the UTF-8 character directly
-        url_str+="$byte"
-      else
-        ord=$(( [##16] #byte ))
-        url_str+="%$ord"
-      fi
+      ord=$(printf "%02X" "'$byte")
+      url_str+="%$ord"
     fi
   done
   echo -E "$url_str"
 }
 
+# Opens a file or URL with the default application.
 function open_command() {
   local open_cmd
 
-  # define the open command
+  # Define the open command based on the OS.
   case "$OSTYPE" in
     darwin*)  open_cmd='open' ;;
     cygwin*)  open_cmd='cygstart' ;;
-    linux*)   [[ "$(uname -r)" != *icrosoft* ]] && open_cmd='nohup xdg-open' || {
-                open_cmd='cmd.exe /c start ""'
-                [[ -e "$1" ]] && { 1="$(wslpath -w "${1:a}")" || return 1 }
-              } ;;
+    linux*)   [[ "$(uname -r)" != *icrosoft* ]] && open_cmd='xdg-open' || open_cmd='cmd.exe /c start ""' ;;
     msys*)    open_cmd='start ""' ;;
-    *)        echo "Platform $OSTYPE not supported"
-              return 1
-              ;;
+    *)
+      echo "Error: Platform '$OSTYPE' not supported." >&2
+      return 1
+      ;;
   esac
 
-  # If a URL is passed, $BROWSER might be set to a local browser within SSH.
-  # See https://github.com/ohmyzsh/ohmyzsh/issues/11098
+  # Handle WSL path conversion for files.
+  if [[ "$OSTYPE" = linux* && "$(uname -r)" = *icrosoft* && -e "$1" ]]; then
+      1="$(wslpath -w "${1:a}")" || return 1
+  fi
+
+  # Use $BROWSER if it's set for URLs.
   if [[ -n "$BROWSER" && "$1" = (http|https)://* ]]; then
-    "$BROWSER" "$@"
+    "$BROWSER" "$@" &>/dev/null &
     return
   fi
 
-  ${=open_cmd} "$@" &>/dev/null
+  ${=open_cmd} "$@" &>/dev/null &
 }
 
-function web_search() {
+# Performs a web search using a specified engine.
+function web() {
   emulate -L zsh
 
-  # define search engine URLS
+  # Define search engine URLs.
   typeset -A urls
   urls=(
     $ZSH_WEB_SEARCH_ENGINES
@@ -233,60 +111,67 @@ function web_search() {
     youtube         "https://www.youtube.com/results?search_query="
   )
 
-  # check whether the search engine is supported
+  # If no arguments are given, print the list of available engines.
+  if [[ $# -eq 0 ]]; then
+    echo "Usage: web <engine> [query]"
+    echo "\nAvailable search engines:"
+    print -l ${(ko)urls} # Print sorted keys of the urls array
+    return 0
+  fi
+
+  # Check if the search engine is supported.
   if [[ -z "$urls[$1]" ]]; then
     echo "Search engine '$1' not supported."
     return 1
   fi
 
-  # search or go to main page depending on number of arguments passed
+  local url
+  # Search or go to the main page depending on the number of arguments.
   if [[ $# -gt 1 ]]; then
-    # build search url:
-    # join arguments passed with '+', then append to search engine URL
-    url="${urls[$1]}$(omz_urlencode ${@[2,-1]})"
+    # Build search URL.
+    url="${urls[$1]}$(omz_urlencode -r ${@[2,-1]})"
   else
-    # build main page url:
-    # split by '/', then rejoin protocol (1) and domain (2) parts with '//'
+    # Build main page URL.
     url="${(j://:)${(s:/:)urls[$1]}[1,2]}"
   fi
 
   open_command "$url"
 }
 
+# --- ALIASES ---
+alias bing='web bing'
+alias brs='web brave'
+alias google='web google'
+alias yahoo='web yahoo'
+alias ddg='web duckduckgo'
+alias sp='web startpage'
+alias yandex='web yandex'
+alias github='web github'
+alias baidu='web baidu'
+alias ecosia='web ecosia'
+alias goodreads='web goodreads'
+alias qwant='web qwant'
+alias givero='web givero'
+alias stackoverflow='web stackoverflow'
+alias wolframalpha='web wolframalpha'
+alias archive='web archive'
+alias scholar='web scholar'
+alias ask='web ask'
+alias youtube='web youtube'
 
-alias bing='web_search bing'
-alias brs='web_search brave'
-alias google='web_search google'
-alias yahoo='web_search yahoo'
-alias ddg='web_search duckduckgo'
-alias sp='web_search startpage'
-alias yandex='web_search yandex'
-alias github='web_search github'
-alias baidu='web_search baidu'
-alias ecosia='web_search ecosia'
-alias goodreads='web_search goodreads'
-alias qwant='web_search qwant'
-alias givero='web_search givero'
-alias stackoverflow='web_search stackoverflow'
-alias wolframalpha='web_search wolframalpha'
-alias archive='web_search archive'
-alias scholar='web_search scholar'
-alias ask='web_search ask'
-alias youtube='web_search youtube'
+# !bang searches
+alias wiki='web duckduckgo \!w'
+alias news='web duckduckgo \!n'
+alias map='web duckduckgo \!m'
+alias image='web duckduckgo \!i'
+alias ducky='web duckduckgo \!'
 
-#add your own !bang searches here
-alias wiki='web_search duckduckgo \!w'
-alias news='web_search duckduckgo \!n'
-alias map='web_search duckduckgo \!m'
-alias image='web_search duckduckgo \!i'
-alias ducky='web_search duckduckgo \!'
-
-# other search engine aliases
+# Add aliases for custom search engines
 if [[ ${#ZSH_WEB_SEARCH_ENGINES} -gt 0 ]]; then
   typeset -A engines
   engines=($ZSH_WEB_SEARCH_ENGINES)
   for key in ${(k)engines}; do
-    alias "$key"="web_search $key"
+    alias "$key"="web $key"
   done
   unset engines key
 fi
