@@ -2,15 +2,21 @@ function omz_urlencode() {
    emulate -L zsh
    local -a opts
    zparseopts -D -E -a opts r m P
-
    local in_str="$@"
    local url_str=""
    local spaces_as_plus
    if [[ -z $opts[(r)-P] ]]; then spaces_as_plus=1; fi
    local str="$in_str"
 
+   # Debug: Print the input string
+   echo "Debug: Input string is $str"
+
    # URLs must use UTF-8 encoding; convert str to UTF-8 if required
-   local encoding=$langinfo[CODESET]
+   local encoding=${langinfo[CODESET]:-UTF-8} # Fallback to UTF-8 if encoding is empty
+
+   # Debug: Print the detected encoding
+   echo "Debug: Detected encoding is $encoding"
+
    local safe_encodings
    safe_encodings=(UTF-8 utf8 US-ASCII)
    if [[ -z ${safe_encodings[(r)$encoding]} ]]; then
@@ -22,8 +28,6 @@ function omz_urlencode() {
    fi
 
    # Use LC_CTYPE=C to process text byte-by-byte
-   # Note that this doesn't work in Termux, as it only has UTF-8 locale.
-   # Characters will be processed as UTF-8, which is fine for URLs.
    local i byte ord LC_ALL=C
    export LC_ALL
    local reserved=';/?:@&=+$,'
@@ -32,14 +36,11 @@ function omz_urlencode() {
    if [[ -z $opts[(r)-r] ]]; then
      dont_escape+=$reserved
    fi
-   # $mark must be last because of the "-"
    if [[ -z $opts[(r)-m] ]]; then
      dont_escape+=$mark
    fi
    dont_escape+="]"
 
-   # Implemented to use a single printf call and avoid subshells in the loop,
-   # for performance (primarily on Windows).
    local url_str=""
    for (( i = 1; i <= ${#str}; ++i )); do
      byte="$str[i]"
@@ -49,7 +50,6 @@ function omz_urlencode() {
        if [[ "$byte" == " " && -n $spaces_as_plus ]]; then
          url_str+="+"
        elif [[ "$PREFIX" = *com.termux* ]]; then
-         # Termux does not have non-UTF8 locales, so just send the UTF-8 character directly
          url_str+="$byte"
        else
          ord=$(( [##16] #byte ))
@@ -58,7 +58,8 @@ function omz_urlencode() {
      fi
    done
    echo -E "$url_str"
- }
+}
+
 
  function open_command() {
    local open_cmd
