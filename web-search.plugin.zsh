@@ -112,12 +112,11 @@ function web() {
     scholar       "https://scholar.google.com/scholar?q="
     ask           "https://www.ask.com/web?q="
     youtube       "https://www.youtube.com/results?search_query="
-    grok          "https://x.com/search?q="
+    grok          "https://grok.com/c?q="
+    google-ai     "https://www.google.com/search?udm=50&source=searchlabs&q=yourquery"
     twitter       "https://x.com/search?q="
-    gemini        "https://gemini.google.com/app"
-    chatgpt       "https://chatgpt.com/"
-    mistral       "https://chat.mistral.ai/chat"
-    claude        "https://claude.ai/"
+    chatgpt       "https://chatgpt/?q="
+    mistral       "https://chat.mistral.ai/chat/q="
   )
 
   # Handle flags
@@ -183,12 +182,11 @@ alias grok='web grok'
 alias grk='web grok'
 alias twitter='web twitter'
 alias tw='web twitter'
-alias gemini='web gemini'
+alias google-ai='web google-ai'
+alias gai='web google-ai'
 alias chatgpt='web chatgpt'
 alias mistral='web mistral'
 alias mist='web mistral'
-alias claude='web claude'
-alias cl='web claude'
 
 # Add aliases for custom search engines
 if [[ ${#ZSH_WEB_SEARCH_ENGINES} -gt 0 ]]; then
