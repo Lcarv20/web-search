@@ -115,7 +115,7 @@ function web() {
     grok          "https://grok.com/c?q="
     google-ai     "https://www.google.com/search?udm=50&source=searchlabs&q=yourquery"
     twitter       "https://x.com/search?q="
-    chatgpt       "https://chatgpt/?q="
+    chatgpt       "https://chatgpt.com/?q="
     mistral       "https://chat.mistral.ai/chat/q="
   )
 
