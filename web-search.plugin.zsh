@@ -93,31 +93,45 @@ function web() {
   typeset -A urls
   urls=(
     $ZSH_WEB_SEARCH_ENGINES
-    google          "https://www.google.com/search?q="
-    bing            "https://www.bing.com/search?q="
-    brave           "https://search.brave.com/search?q="
-    yahoo           "https://search.yahoo.com/search?p="
-    duckduckgo      "https://www.duckduckgo.com/?q="
-    startpage       "https://www.startpage.com/do/search?q="
-    yandex          "https://yandex.ru/yandsearch?text="
-    github          "https://github.com/search?q="
-    baidu           "https://www.baidu.com/s?wd="
-    ecosia          "https://www.ecosia.org/search?q="
-    goodreads       "https://www.goodreads.com/search?q="
-    qwant           "https://www.qwant.com/?q="
-    givero          "https://www.givero.com/search?q="
-    stackoverflow   "https://stackoverflow.com/search?q="
-    wolframalpha    "https://www.wolframalpha.com/input/?i="
-    archive         "https://web.archive.org/web/*/"
-    scholar         "https://scholar.google.com/scholar?q="
-    ask             "https://www.ask.com/web?q="
-    youtube         "https://www.youtube.com/results?search_query="
+    google        "https://www.google.com/search?q="
+    bing          "https://www.bing.com/search?q="
+    brave         "https://search.brave.com/search?q="
+    yahoo         "https://search.yahoo.com/search?p="
+    duckduckgo    "https://www.duckduckgo.com/?q="
+    startpage     "https://www.startpage.com/do/search?q="
+    yandex        "https://yandex.ru/yandsearch?text="
+    github        "https://github.com/search?q="
+    baidu         "https://www.baidu.com/s?wd="
+    ecosia        "https://www.ecosia.org/search?q="
+    goodreads     "https://www.goodreads.com/search?q="
+    qwant         "https://www.qwant.com/?q="
+    givero        "https://www.givero.com/search?q="
+    stackoverflow "https://stackoverflow.com/search?q="
+    wolframalpha  "https://www.wolframalpha.com/input/?i="
+    archive       "https://web.archive.org/web/*/"
+    scholar       "https://scholar.google.com/scholar?q="
+    ask           "https://www.ask.com/web?q="
+    youtube       "https://www.youtube.com/results?search_query="
+    grok          "https://x.com/search?q="
+    twitter       "https://x.com/search?q="
+    gemini        "https://gemini.google.com/app"
+    chatgpt       "https://chatgpt.com/"
+    mistral       "https://chat.mistral.ai/chat"
+    claude        "https://claude.ai/"
   )
 
-  # If no arguments are given, print the list of available engines.
-  if [[ $# -eq 0 ]]; then
+  # Handle flags
+  if [[ "$1" == "-h" || "$1" == "--help" ]]; then
     echo "Usage: web <engine> [query]"
-    echo "\nAvailable search engines:"
+    echo "       web [-l | --list] [-h | --help]"
+    echo "\nFlags:"
+    echo "  -l, --list    List all available search engines."
+    echo "  -h, --help    Show this help message."
+    return 0
+  fi
+
+  if [[ "$1" == "-l" || "$1" == "--list" || $# -eq 0 ]]; then
+    echo "Available search engines:"
     print -l ${(ko)urls} # Print sorted keys of the urls array
     return 0
   fi
@@ -145,6 +159,7 @@ function web() {
 alias bing='web bing'
 alias brs='web brave'
 alias google='web google'
+alias g='web google'
 alias yahoo='web yahoo'
 alias ddg='web duckduckgo'
 alias sp='web startpage'
@@ -161,13 +176,19 @@ alias archive='web archive'
 alias scholar='web scholar'
 alias ask='web ask'
 alias youtube='web youtube'
+alias yt='web youtube'
 
-# !bang searches
-alias wiki='web duckduckgo \!w'
-alias news='web duckduckgo \!n'
-alias map='web duckduckgo \!m'
-alias image='web duckduckgo \!i'
-alias ducky='web duckduckgo \!'
+# --- Custom AI/Social Aliases ---
+alias grok='web grok'
+alias grk='web grok'
+alias twitter='web twitter'
+alias tw='web twitter'
+alias gemini='web gemini'
+alias chatgpt='web chatgpt'
+alias mistral='web mistral'
+alias mist='web mistral'
+alias claude='web claude'
+alias cl='web claude'
 
 # Add aliases for custom search engines
 if [[ ${#ZSH_WEB_SEARCH_ENGINES} -gt 0 ]]; then
