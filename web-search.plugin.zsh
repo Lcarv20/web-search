@@ -116,7 +116,7 @@ function web() {
     google-ai     "https://www.google.com/search?udm=50&source=searchlabs&q=yourquery"
     twitter       "https://x.com/search?q="
     chatgpt       "https://chatgpt.com/?q="
-    mistral       "https://chat.mistral.ai/chat/q="
+    mistral       "https://chat.mistral.ai/chat?q="
   )
 
   # Handle flags
